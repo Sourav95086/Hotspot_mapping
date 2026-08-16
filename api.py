@@ -7,6 +7,8 @@ from category_service import (
     get_or_create_category,
     update_city_category_count
 )
+from hotspot_service import classify_hotspots
+from thematic.supabase_client import fetch_issue, supabase
 
 
 app = FastAPI(
