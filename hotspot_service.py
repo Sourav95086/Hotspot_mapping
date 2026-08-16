@@ -1,6 +1,6 @@
 from thematic.supabase_client import supabase
-from thematic.supabase_client import supabase
-from hotspot_service import classify_hotspots
+
+
 def classify_hotspots(city: str):
 
     response = (

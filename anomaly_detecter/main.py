@@ -1,5 +1,5 @@
 from anomaly_agent import detect_civic_issue
-from supabase_client import fetch_issue
+from thematic.supabase_client import fetch_issue
 
 tests = [
     
