@@ -1,4 +1,4 @@
-from supabase_client import fetch_issue
+from thematic.supabase_client import fetch_issue
 from anomaly_detecter.anomaly_agent import detect_civic_issue
 from thematic.thematic_agent import classify_issue
 
