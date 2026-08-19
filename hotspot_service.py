@@ -134,10 +134,10 @@ def classify_hotspots(city: str):
         # Classify hotspot
         # ==========================================
 
-        if hotspot_score > 1000:
+        if hotspot_score > 900:
             issue_class = "hotspot"
 
-        elif hotspot_score > 700:
+        elif hotspot_score > 600:
             issue_class = "moderate"
 
         else:
