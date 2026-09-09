@@ -123,65 +123,109 @@ def get_city_hotspots(city: str):
 # ROUTE 2
 # Issues for a specific city + category
 # ==========================================
-
 @app.get("/hotspots/{city}/{category_id}/issues")
 def get_category_issues(
     city: str,
     category_id: int
 ):
 
-    response = (
+    # ------------------------------------------
+    # 1. Get category name from category_id
+    # ------------------------------------------
+    category_response = (
         supabase
-        .table("issue_reports")
-        .select(
-            "issue_id, issue_description, "
-            "issue_location, latitude, longitude, category_id"
-        )
-        .eq("issue_location", city)
+        .table("issue_categories")
+        .select("category_name")
         .eq("category_id", category_id)
+        .maybe_single()
         .execute()
     )
 
-    reports = response.data
+    if not category_response.data:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Category {category_id} not found"
+        )
 
+    category_name = category_response.data["category_name"]
+
+    # ------------------------------------------
+    # 2. Get all issue IDs belonging to category
+    # ------------------------------------------
+    issues_response = (
+        supabase
+        .table("issues")
+        .select("issue_id, issue_weight")
+        .eq("issue_category", category_name)
+        .execute()
+    )
+
+    if not issues_response.data:
+        return {
+            "success": True,
+            "city": city,
+            "category_id": category_id,
+            "category_name": category_name,
+            "total_issues": 0,
+            "issues": []
+        }
+
+    issue_ids = [
+        issue["issue_id"]
+        for issue in issues_response.data
+    ]
+
+    # Create weight lookup
+    weight_map = {
+        issue["issue_id"]: issue["issue_weight"]
+        for issue in issues_response.data
+    }
+
+    # ------------------------------------------
+    # 3. Get reports for those issues in city
+    # ------------------------------------------
+    reports_response = (
+        supabase
+        .table("issue_reports")
+        .select(
+            "issue_id, "
+            "issue_description, "
+            "issue_location, "
+            "latitude, "
+            "longitude"
+        )
+        .eq("issue_location", city)
+        .in_("issue_id", issue_ids)
+        .execute()
+    )
+
+    reports = reports_response.data
+
+    # ------------------------------------------
+    # 4. Build final response
+    # ------------------------------------------
     results = []
 
     for report in reports:
 
         issue_id = report["issue_id"]
 
-        # Fetch weight from issues table
-
-        weight_response = (
-            supabase
-            .table("issues")
-            .select("issue_weight")
-            .eq("issue_id", issue_id)
-            .maybe_single()
-            .execute()
-        )
-
-        issue_weight = None
-
-        if weight_response.data:
-            issue_weight = weight_response.data["issue_weight"]
-
-
         results.append({
             "issue_id": issue_id,
             "issue_description": report["issue_description"],
             "issue_location": report["issue_location"],
-            "category_id": report["category_id"],
+            "category_id": category_id,
+            "category_name": category_name,
             "latitude": report["latitude"],
             "longitude": report["longitude"],
-            "issue_weight": issue_weight
+            "issue_weight": weight_map.get(issue_id)
         })
-
 
     return {
         "success": True,
         "city": city,
         "category_id": category_id,
+        "category_name": category_name,
         "total_issues": len(results),
         "issues": results
     }
